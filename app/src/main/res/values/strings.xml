@@ -5,6 +5,6 @@
     <string name="choose_A2">さかなに食べられる</string>
     <string name="choose_A3">はい</string>
     <string name="choose_A4">いいえ</string>
-
+    <string name="msg_token_fmt" translatable="false">FCM registration Token: %s</string>
     <string name="main_text_1">さかなだよーおいしいよー\nさかなさかな</string>
 </resources>

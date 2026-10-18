@@ -5,7 +5,7 @@
     android:id="@+id/activity_battle"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".BattleActivity">
+    tools:context="com.darkcat.android.testnobel.BattleActivity">
 
     <ImageView
         android:id="@+id/imageView_battle"
