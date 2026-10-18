@@ -9,7 +9,7 @@ public class SoundManager {
     // 効果音初期設定
     public void initSound() {
         // 効果音初期設定
-        soundPool = new SoundPool(6, AudioManager.STREAM_MUSIC, 0);
+//        soundPool = new SoundPool(6, AudioManager.STREAM_MUSIC, 0);
 
         // 効果音登録
 //        int sound_1 = soundPool.load(this, R.raw.hit, 1);

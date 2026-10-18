@@ -62,6 +62,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import com.darkcat.android.testnobel.VoicevoxBridge;
 
  public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
     private Util util = new Util(); // Utilクラスのインスタンス
@@ -111,6 +112,8 @@ import java.util.concurrent.Executors;
     private VoiceBoxClient voicevox; // VoiceBoxインスタンス
     private String dictPath; // 辞書ファイルのパス
     private MediaProjectionManager projectionManager; // MediaProjectionManager
+    private VoicevoxReader voicevoxReader;
+
      private static final int REQUEST_CODE_CAPTURE_PERM = 999; // 値は0以上の任意の整数
 //     // VoiceBoxCore読み込み（後で対応する！！）
 //     static {
@@ -122,6 +125,17 @@ import java.util.concurrent.Executors;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        /// /
+        voicevoxReader = new VoicevoxReader(this);
+        voicevoxReader.speak("こんにちは、ずんだもんなのだ。");
+
+        // スキップ・停止ボタンから呼ぶ場合
+        voicevoxReader.stop();
+        /// /
+
+
+
         // 初期設定
         setInit();
 
@@ -530,6 +544,7 @@ import java.util.concurrent.Executors;
 
      @Override
      protected void onStop() {
+         if (voicevoxReader != null) voicevoxReader.stop();
          super.onStop();
          // ホーム画面に戻った際などにサービスを停止
          stopService(new Intent(this, StoryMakerService.class));
@@ -537,11 +552,19 @@ import java.util.concurrent.Executors;
 
     @Override
     protected void onDestroy() {
+        if (voicevoxReader != null) {
+            voicevoxReader.close();
+            voicevoxReader = null;
+        }
         if (tts != null) {
             tts.stop();
             tts.shutdown();
         }
         super.onDestroy();
+
+        // voicevox解放！
+        releaseVoicevoxTestPlayer();
+
         // サービスのクラス名を指定して停止
         Intent intent = new Intent(this, StoryMakerService.class);
         stopService(intent);
@@ -1395,4 +1418,58 @@ import java.util.concurrent.Executors;
     private void setTextColorDown(String colorString) {
         textViewDown.setTextColor(Color.parseColor(colorString));
     }
-}
+
+     private android.media.MediaPlayer voicevoxTestPlayer;
+     private java.io.File voicevoxTestWav;
+
+     private void releaseVoicevoxTestPlayer() {
+         if (voicevoxTestPlayer != null) {
+             voicevoxTestPlayer.release();
+             voicevoxTestPlayer = null;
+         }
+         if (voicevoxTestWav != null) {
+             voicevoxTestWav.delete();
+             voicevoxTestWav = null;
+         }
+     }
+
+     // UIスレッドから呼ぶ。
+     private void playVoicevoxTest(java.io.File wavFile) {
+         releaseVoicevoxTestPlayer();
+         voicevoxTestWav = wavFile;
+         android.media.MediaPlayer player = new android.media.MediaPlayer();
+         voicevoxTestPlayer = player;
+         try {
+             player.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                     .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                     .build());
+             try (java.io.FileInputStream in = new java.io.FileInputStream(wavFile)) {
+                 player.setDataSource(in.getFD());
+             }
+             player.setOnPreparedListener(p -> {
+                 p.start();
+                 android.util.Log.i("VoicevoxCheck", "ずんだもん再生開始");
+             });
+             player.setOnCompletionListener(p -> {
+                 android.util.Log.i("VoicevoxCheck", "ずんだもん再生完了");
+                 releaseVoicevoxTestPlayer();
+             });
+             player.setOnErrorListener((p, what, extra) -> {
+                 android.util.Log.e("VoicevoxCheck",
+                         "再生エラー: what=" + what + ", extra=" + extra);
+                 releaseVoicevoxTestPlayer();
+                 return true;
+             });
+             player.prepareAsync();
+         } catch (Exception e) {
+             releaseVoicevoxTestPlayer();
+             android.util.Log.e("VoicevoxCheck", "WAV再生準備失敗", e);
+             new android.app.AlertDialog.Builder(this)
+                     .setTitle("VOICEVOX 再生失敗")
+                     .setMessage(e.toString())
+                     .setPositiveButton("OK", null)
+                     .show();
+         }
+     }
+ }
